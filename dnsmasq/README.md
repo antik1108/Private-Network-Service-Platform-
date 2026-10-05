@@ -37,9 +37,9 @@ bogus-priv
 # Listen only on loopback and LAN interface
 listen-address=127.0.0.1,10.7.7.19
 
-# Private domain records pointing to Nginx Load Balancer (Mac 2: 10.7.10.162) with 30s TTL
-host-record=app.teamX.test,10.7.10.162,30
-host-record=api.teamX.test,10.7.10.162,30
+# Private domain records pointing to Nginx Load Balancer (Mac 2: 10.7.17.201) with 30s TTL
+host-record=app.teamX.test,10.7.17.201,30
+host-record=api.teamX.test,10.7.17.201,30
 
 # Forward non-private external queries to public DNS
 no-resolv
@@ -87,7 +87,7 @@ dig @127.0.0.1 app.teamX.test
 # Query from another LAN client:
 dig @10.7.7.19 app.teamX.test
 ```
-*Expected output: Returns `10.7.10.162` with a 30s TTL in the ANSWER section.*
+*Expected output: Returns `10.7.17.201` with a 30s TTL in the ANSWER section.*
 
 ### Step 3: Verify Private Domain Isolation
 ```bash

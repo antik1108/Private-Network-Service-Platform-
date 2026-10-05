@@ -20,12 +20,11 @@ The platform creates an isolated, enterprise-grade 3-tier network request flow a
 
 ```
 [ Client Mac ]
+      �      ├── 1. DNS Query (UDP 53) ──────► Mac 1 (Antik: 10.7.7.19)
+                                        Service: dnsmasq
+                                        Resolves: app.teamX.test -> 10.7.17.201 (TTL: 30s)
       │
-      ├── 1. DNS Query (UDP 53) ──────► Mac 1 (Antik: 10.7.7.19)
-      │                                 Service: dnsmasq
-      │                                 Resolves: app.teamX.test -> 10.7.10.162 (TTL: 30s)
-      │
-      └── 2. HTTPS/TLS (TCP 443) ─────► Mac 2 (Vansh: 10.7.10.162)
+      └── 2. HTTPS/TLS (TCP 443) ─────► Mac 2 (Vansh: 10.7.17.201)
                                         Service: nginx (Reverse Proxy + TLSv1.3 Termination)
                                         Upstream Balancing: Round-Robin
                                         │
@@ -46,7 +45,7 @@ The platform creates an isolated, enterprise-grade 3-tier network request flow a
 | Machine | Role | Member Assigned | Hostname / IP | Service | Port | Key Configuration File |
 | --- | --- | --- | --- | --- | --- | --- |
 | **Mac 1** | Private DNS | Tanmay Singh (`2401010476`) | `10.7.7.19` | `dnsmasq` | UDP/TCP `53` | `/opt/homebrew/etc/dnsmasq.conf` |
-| **Mac 2** | Edge / TLS Terminator / Load Balancer | Vansh Panwar (`2401010494`) | `10.7.10.162` | `nginx` | TCP `80`, `443` | `/opt/homebrew/etc/nginx/servers/cn-project.conf` |
+| **Mac 2** | Edge / TLS Terminator / Load Balancer | Vansh Panwar (`2401010494`) | `10.7.17.201` | `nginx` | TCP `80`, `443` | `/opt/homebrew/etc/nginx/servers/cn-project.conf` |
 | **Mac 3** | Application Node A | Antik Mondal (`2401010084`) | `10.7.7.19` | Python Flask | TCP `3001` | `backend/app.py` (`BACKEND_ID=A`) |
 | **Mac 4** | Application Node B | Antik Mondal (`2401010084`) | `10.7.7.19` | Python Flask | TCP `3002` | `backend/app.py` (`BACKEND_ID=B`) |
 
@@ -66,8 +65,8 @@ The platform creates an isolated, enterprise-grade 3-tier network request flow a
    bogus-priv
    interface=lo0
    listen-address=127.0.0.1,10.7.7.19
-   host-record=app.teamX.test,10.7.10.162,30
-   host-record=api.teamX.test,10.7.10.162,30
+   host-record=app.teamX.test,10.7.17.201,30
+   host-record=api.teamX.test,10.7.17.201,30
    server=8.8.8.8
    ```
 3. Start service:
@@ -76,6 +75,9 @@ The platform creates an isolated, enterprise-grade 3-tier network request flow a
    ```
 4. Verify:
    ```bash
+   dig @127.0.0.1 app.teamX.test +short
+   # Output: 10.7.17.201
+   ```sh
    dig @127.0.0.1 app.teamX.test +short
    # Output: 10.7.10.162
    ```

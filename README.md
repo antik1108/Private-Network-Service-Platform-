@@ -29,7 +29,7 @@ flowchart LR
     
     subgraph network["Private Local Area Network"]
         dns["DNS Server (Mac 1)<br/>10.7.7.19:53<br/>dnsmasq"]
-        edge["Edge / Load Balancer (Mac 2)<br/>10.7.10.162:443<br/>nginx (HTTPS / HTTP/2)"]
+        edge["Edge / Load Balancer (Mac 2)<br/>10.7.17.201:443<br/>nginx (HTTPS / HTTP/2)"]
         
         subgraph backends["Backend Compute Pool"]
             appa["Backend A (Mac 3)<br/>10.7.7.19:3001<br/>Python Flask REST"]
@@ -38,7 +38,7 @@ flowchart LR
     end
 
     client -->|"1. DNS Query: UDP 53"| dns
-    dns -.->|"2. app.teamX.test = 10.7.10.162 (TTL: 30s)"| client
+    dns -.->|"2. app.teamX.test = 10.7.17.201 (TTL: 30s)"| client
     client -->|"3. HTTPS: TCP 443 (TLS 1.2/1.3)"| edge
     edge -->|"4. HTTP/1.1: TCP 3001 (Round Robin)"| appa
     edge -->|"4. HTTP/1.1: TCP 3002 (Round Robin)"| appb
@@ -56,7 +56,7 @@ flowchart LR
 | Node | Member & Role | Address & Port | Service | Protocol Layer |
 | --- | --- | --- | --- | --- |
 | **Mac 1** | Tanmay Singh (`2401010476`) — Primary DNS | `10.7.7.19:53` | `dnsmasq` | Application (UDP/TCP 53) |
-| **Mac 2** | Vansh Panwar (`2401010494`) — Edge & Load Balancer | `10.7.10.162:443` | `nginx` | Presentation / Transport (TLS / TCP 443) |
+| **Mac 2** | Vansh Panwar (`2401010494`) — Edge & Load Balancer | `10.7.17.201:443` | `nginx` | Presentation / Transport (TLS / TCP 443) |
 | **Mac 3** | Antik Mondal (`2401010084`) — Backend A | `10.7.7.19:3001` | Python REST API | Application (HTTP/1.1) |
 | **Mac 4** | Antik Mondal (`2401010084`) — Backend B | `10.7.7.19:3002` | Python REST API | Application (HTTP/1.1) |
 
