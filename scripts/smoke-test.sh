@@ -1,26 +1,12 @@
 #!/bin/bash
-# Run from any CLIENT Mac once Tasks A-D are done, to sanity-check the
-# whole chain before moving on to TLS (Task E).
-# Usage: ./smoke-test.sh teamX.test
+# Quick end-to-end check from any CLIENT Mac (DNS -> HTTPS -> load balancing -> caching).
+# Usage: scripts/smoke-test.sh [teamX.test]      (for the full layer-by-layer check use scripts/diagnose.sh)
 set -euo pipefail
-
-DOMAIN="${1:-teamX.test}"
-
-echo "== 1. DNS resolution =="
-DNS_RESULT="$(dscacheutil -q host -a name "app.$DOMAIN" | awk '/ip_address:/{print $2}')"
-if [ -z "$DNS_RESULT" ]; then
-  echo "ERROR: macOS could not resolve app.$DOMAIN. Set this client's DNS to the DNS Mac's LAN IP (127.0.0.1 only on the DNS Mac) and remove public secondary resolvers." >&2
-  exit 1
-fi
-printf '%s\n' "$DNS_RESULT"
-
-echo ""
-echo "== 2. HTTP through the load balancer (5 requests) =="
-for i in 1 2 3 4 5; do
-  curl --fail --silent --show-error --connect-timeout 3 --max-time 10 "http://app.$DOMAIN/api/status"
-  echo ""
-done
-
-echo ""
-echo "== 3. Response headers (Cache-Control, X-Backend) =="
-curl --fail --silent --show-error --connect-timeout 3 --max-time 10 --head "http://app.$DOMAIN/api/status"
+DOMAIN="${1:-teamX.test}"; APP="app.$DOMAIN"
+echo "== 1. DNS (system resolver)";  dscacheutil -q host -a name "$APP" | awk '/ip_address/{print "  " $2}' | grep . \
+  || { echo "ERROR: cannot resolve $APP - set this Mac's DNS to the team resolvers (sudo scripts/phase2/client-setup.sh)" >&2; exit 1; }
+echo "== 2. HTTPS through the edge (certificate must verify, no -k), 6 requests"
+for i in 1 2 3 4 5 6; do curl -sS --max-time 8 -D - -o /dev/null "https://$APP/api/status" | awk 'NR==1{printf "  %s %s", $1, $2} tolower($1)=="x-backend:"{printf "  backend=%s", $2} tolower($1)=="x-edge:"{printf "  edge=%s", $2} END{print ""}' | tr -d '\r'; done
+echo "== 3. Caching headers + conditional request"
+curl -sSI "https://$APP/api/cache" | grep -iE '^HTTP|cache-control|etag' | sed 's/^/  /'
+curl -sS -o /dev/null -w '  If-None-Match -> HTTP %{http_code}\n' -H 'If-None-Match: "cn-cache-v1"' "https://$APP/api/cache"

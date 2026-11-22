@@ -1,3 +1,5 @@
+> **Updated 23 Nov 2026:** IPs refreshed after DHCP changes. Phase 2 roles, scripts and the demo sequence: [phase2-runbook.md](phase2-runbook.md), report: [phase2-report.md](phase2-report.md).
+
 # Project Playbook, Troubleshooting & Operation Guide
 
 A complete, step-by-step master reference documenting the architecture, entire setup process, every problem encountered and its exact resolution, runbook commands, and Wireshark forensic procedures.
@@ -20,16 +22,17 @@ The platform creates an isolated, enterprise-grade 3-tier network request flow a
 
 ```
 [ Client Mac ]
-      �      ├── 1. DNS Query (UDP 53) ──────► Mac 1 (Antik: 10.7.7.19)
-                                        Service: dnsmasq
-                                        Resolves: app.teamX.test -> 10.7.17.201 (TTL: 30s)
       │
-      └── 2. HTTPS/TLS (TCP 443) ─────► Mac 2 (Vansh: 10.7.17.201)
-                                        Service: nginx (Reverse Proxy + TLSv1.3 Termination)
+      ├── 1. DNS Query (UDP 53) ──────► Mac 1 (Tanmay: 10.7.6.8) primary / Mac 2 (Vansh: 10.7.31.150) backup
+                                        Service: dnsmasq
+                                        Resolves: app.teamX.test -> 10.7.31.150 (TTL: 30s)
+      │
+      └── 2. HTTPS/TLS (TCP 443) ─────► Mac 2 (Vansh: 10.7.31.150)
+                                        Service: nginx (Reverse Proxy + TLS termination, HTTP/2)
                                         Upstream Balancing: Round-Robin
                                         │
-                                        ├── 3a. HTTP/1.1 TCP 3001 ──► Backend A (Antik: 10.7.7.19)
-                                        └── 3b. HTTP/1.1 TCP 3002 ──► Backend B (Antik: 10.7.7.19)
+                                        ├── 3a. HTTP/1.1 TCP 3001 ──► Backend A (Antik: 10.7.22.168)
+                                        └── 3b. HTTP/1.1 TCP 3002 ──► Backend B (Antik: 10.7.22.168)
 ```
 
 ### Project Members & Responsibilities
@@ -44,10 +47,10 @@ The platform creates an isolated, enterprise-grade 3-tier network request flow a
 
 | Machine | Role | Member Assigned | Hostname / IP | Service | Port | Key Configuration File |
 | --- | --- | --- | --- | --- | --- | --- |
-| **Mac 1** | Private DNS | Tanmay Singh (`2401010476`) | `10.7.7.19` | `dnsmasq` | UDP/TCP `53` | `/opt/homebrew/etc/dnsmasq.conf` |
-| **Mac 2** | Edge / TLS Terminator / Load Balancer | Vansh Panwar (`2401010494`) | `10.7.17.201` | `nginx` | TCP `80`, `443` | `/opt/homebrew/etc/nginx/servers/cn-project.conf` |
-| **Mac 3** | Application Node A | Antik Mondal (`2401010084`) | `10.7.7.19` | Python Flask | TCP `3001` | `backend/app.py` (`BACKEND_ID=A`) |
-| **Mac 4** | Application Node B | Antik Mondal (`2401010084`) | `10.7.7.19` | Python Flask | TCP `3002` | `backend/app.py` (`BACKEND_ID=B`) |
+| **Mac 1** | Private DNS | Tanmay Singh (`2401010476`) | `10.7.6.8` | `dnsmasq` | UDP/TCP `53` | `/opt/homebrew/etc/dnsmasq.conf` |
+| **Mac 2** | Edge / TLS Terminator / Load Balancer | Vansh Panwar (`2401010494`) | `10.7.31.150` | `nginx` | TCP `80`, `443` | `/opt/homebrew/etc/nginx/servers/cn-project.conf` |
+| **Mac 3** | Application Node A | Antik Mondal (`2401010084`) | `10.7.22.168` | Python Flask | TCP `3001` | `backend/app.py` (`BACKEND_ID=A`) |
+| **Mac 4** | Application Node B | Antik Mondal (`2401010084`) | `10.7.22.168` | Python Flask | TCP `3002` | `backend/app.py` (`BACKEND_ID=B`) |
 
 ---
 
@@ -64,9 +67,9 @@ The platform creates an isolated, enterprise-grade 3-tier network request flow a
    domain-needed
    bogus-priv
    interface=lo0
-   listen-address=127.0.0.1,10.7.7.19
-   host-record=app.teamX.test,10.7.17.201,30
-   host-record=api.teamX.test,10.7.17.201,30
+   listen-address=127.0.0.1,10.7.6.8
+   host-record=app.teamX.test,10.7.31.150,30
+   host-record=api.teamX.test,10.7.31.150,30
    server=8.8.8.8
    ```
 3. Start service:
@@ -76,10 +79,10 @@ The platform creates an isolated, enterprise-grade 3-tier network request flow a
 4. Verify:
    ```bash
    dig @127.0.0.1 app.teamX.test +short
-   # Output: 10.7.17.201
+   # Output: 10.7.31.150
    ```sh
    dig @127.0.0.1 app.teamX.test +short
-   # Output: 10.7.10.162
+   # Output: 10.7.31.150
    ```
 
 ### Step 2: Python Backends (Mac 3 & Mac 4 — Antik)
@@ -109,8 +112,8 @@ curl -i http://127.0.0.1:3001/api/cache
 2. Configure `/opt/homebrew/etc/nginx/servers/cn-project.conf`:
    ```nginx
    upstream backend_pool {
-       server 10.7.7.19:3001 max_fails=2 fail_timeout=10s;
-       server 10.7.7.19:3002 max_fails=2 fail_timeout=10s;
+       server 10.7.22.168:3001 max_fails=2 fail_timeout=10s;
+       server 10.7.22.168:3002 max_fails=2 fail_timeout=10s;
    }
 
    server {
@@ -150,7 +153,7 @@ curl -i http://127.0.0.1:3001/api/cache
 ## 3. Problems Faced & Exact Resolutions (Post-Mortem)
 
 ### Problem 1: `curl /api/cache` gave `404 NOT FOUND`
-- **Symptom:** Running `curl http://10.7.7.19:3001/api/cache` returned HTTP 404.
+- **Symptom:** Running `curl http://10.7.22.168:3001/api/cache` returned HTTP 404.
 - **Root Cause:** The starter code in `backend/app.py` only defined `/` and `/api/status`. The course rubric (Section D1 & D2) explicitly requires `/api/cache` with `ETag` and `304 Not Modified` validation.
 - **Resolution:**
   Updated `backend/app.py` with:
@@ -193,7 +196,7 @@ curl -i http://127.0.0.1:3001/api/cache
 
 ### Problem 3: `curl: (7) Failed to connect ... port 443: Connection refused`
 - **Symptom:** `curl http://app.teamX.test/api/status` (Port 80) worked, but `curl https://app.teamX.test/api/status` (Port 443) threw `Connection refused`.
-- **Root Cause:** Nginx on Vansh's Mac (`10.7.10.162`) was active only on Port 80. The SSL certificate had not yet been generated and the `listen 443 ssl;` server block was disabled.
+- **Root Cause:** Nginx on Vansh's Mac (`10.7.31.150`) was active only on Port 80. The SSL certificate had not yet been generated and the `listen 443 ssl;` server block was disabled.
 - **Resolution:**
   1. Generated SSL certificates on Vansh's Mac using `mkcert`.
   2. Activated the `listen 443 ssl;` block in `/opt/homebrew/etc/nginx/servers/cn-project.conf`.
@@ -203,8 +206,8 @@ curl -i http://127.0.0.1:3001/api/cache
 ---
 
 ### Problem 4: DNS query for `app.teamX.test` NOT captured on Wireshark interface `en0`
-- **Symptom:** In Wireshark on `Wi-Fi: en0`, filtering `dns && ip.addr == 10.7.7.19` showed only reverse DNS queries to `8.8.8.8` or mDNS, never the A-record query for `app.teamX.test`.
-- **Root Cause:** The DNS server IP (`10.7.7.19`) was bound to the local Mac. Under macOS kernel routing, traffic from a local IP to a local IP is routed through **Loopback (`lo0`)**, never reaching the physical Wi-Fi interface (`en0`).
+- **Symptom:** In Wireshark on `Wi-Fi: en0`, filtering `dns && ip.addr == 10.7.6.8` showed only reverse DNS queries to `8.8.8.8` or mDNS, never the A-record query for `app.teamX.test`.
+- **Root Cause:** The DNS server IP (`10.7.6.8`) was bound to the local Mac. Under macOS kernel routing, traffic from a local IP to a local IP is routed through **Loopback (`lo0`)**, never reaching the physical Wi-Fi interface (`en0`).
 - **Resolution:**
   1. In Wireshark, pressed `Cmd + K` and selected **`Loopback: lo0`**.
   2. Ran `dig @127.0.0.1 app.teamX.test`.
@@ -218,7 +221,7 @@ curl -i http://127.0.0.1:3001/api/cache
 - **Resolution:**
   Selected Packet 53, expanded `Domain Name System (response) -> Answers -> app.teamX.test`, revealing:
   - `Time to live: 30`
-  - `Address: 10.7.10.162`
+  - `Address: 10.7.31.150`
 
 ---
 
@@ -273,8 +276,8 @@ dig @127.0.0.1 app.teamX.test +short
   sudo brew services restart nginx
   ```
 - **If Nginx returns `502 Bad Gateway`:**
-  Nginx cannot reach Backend A (`10.7.7.19:3001`) or Backend B (`10.7.7.19:3002`).
-  - Verify backends are running on Antik's Mac: `curl http://10.7.7.19:3001/api/status`.
+  Nginx cannot reach Backend A (`10.7.22.168:3001`) or Backend B (`10.7.22.168:3002`).
+  - Verify backends are running on Antik's Mac: `curl http://10.7.22.168:3001/api/status`.
   - Check firewall settings on Antik's Mac: `System Settings -> Network -> Firewall`.
 
 ### Scenario D: Wi-Fi Reconnection Changes IP Addresses
@@ -295,7 +298,7 @@ When reconnecting to Wi-Fi, DHCP often assigns new IPs.
 
 | Forensic Target | Wireshark Display Filter | What to Look For |
 | --- | --- | --- |
-| **DNS Resolution** | `dns` | Packet Query (`app.teamX.test`) & Response (`10.7.10.162`) |
+| **DNS Resolution** | `dns` | Packet Query (`app.teamX.test`) & Response (`10.7.31.150`) |
 | **TCP Handshake (HTTP)** | `tcp.flags.syn == 1 && tcp.port == 80` | `[SYN]` from client, `[SYN, ACK]` from Nginx |
 | **TCP Handshake (HTTPS)** | `tcp.flags.syn == 1 && tcp.port == 443` | `[SYN]` and `[SYN, ACK]` on secure port |
 | **Entire Stream** | `tcp.stream eq 0` | Complete sequence from SYN $\to$ HTTP/TLS $\to$ FIN |
@@ -306,17 +309,17 @@ When reconnecting to Wi-Fi, DHCP often assigns new IPs.
 ```text
 [Loopback: lo0]
 Packet 52: 127.0.0.1 -> 127.0.0.1  DNS  Standard query A app.teamX.test OPT
-Packet 53: 127.0.0.1 -> 127.0.0.1  DNS  Standard query response A 10.7.10.162 (TTL: 30)
+Packet 53: 127.0.0.1 -> 127.0.0.1  DNS  Standard query response A 10.7.31.150 (TTL: 30)
 
 [Wi-Fi: en0]
-Packet 122: 10.7.7.19  -> 10.7.10.162 TCP  49496 -> 80 [SYN]
-Packet 130: 10.7.10.162 -> 10.7.7.19  TCP  80 -> 49496 [SYN, ACK]
+Packet 122: 10.7.6.8  -> 10.7.31.150 TCP  49496 -> 80 [SYN]
+Packet 130: 10.7.31.150 -> 10.7.6.8  TCP  80 -> 49496 [SYN, ACK]
 
 [Wi-Fi: en0 - TLSv1.3 Stream]
-Packet 212: 10.7.7.19  -> 10.7.10.162 TLSv1.3  Client Hello (SNI = app.teamx.test)
-Packet 215: 10.7.10.162 -> 10.7.7.19  TLSv1.3  Server Hello, Change Cipher Spec
-Packet 216: 10.7.10.162 -> 10.7.7.19  TLSv1.3  Certificate & Verification Data
-Packet 218: 10.7.7.19  -> 10.7.10.162 TLSv1.3  Change Cipher Spec
+Packet 212: 10.7.6.8  -> 10.7.31.150 TLSv1.3  Client Hello (SNI = app.teamx.test)
+Packet 215: 10.7.31.150 -> 10.7.6.8  TLSv1.3  Server Hello, Change Cipher Spec
+Packet 216: 10.7.31.150 -> 10.7.6.8  TLSv1.3  Certificate & Verification Data
+Packet 218: 10.7.6.8  -> 10.7.31.150 TLSv1.3  Change Cipher Spec
 Packets 219-222:                       TLSv1.3  Encrypted Application Data
 ```
 

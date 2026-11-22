@@ -1,0 +1,44 @@
+
+==== EXTENSION D - HIGH-AVAILABILITY FAILOVER  Mon Nov 23 02:26:49 IST 2026 ====
+
+--- [02:26:49] Both healthy: round robin
+  #1 200 backend=B edge=edge1-mac2
+  #2 200 backend=A edge=edge1-mac2
+  #3 200 backend=B edge=edge1-mac2
+  #4 200 backend=A edge=edge1-mac2
+
+--- [02:26:49] Stop Backend A
+mac3$ ~/cn-project/bin/cn.sh backend stop A
+[02:26:49 Antiks-MacBook-Pro] backend A STOPPED (port 3001 closed)
+  #1 200 backend=B edge=edge1-mac2
+  #2 200 backend=B edge=edge1-mac2
+  #3 200 backend=B edge=edge1-mac2
+  #4 200 backend=B edge=edge1-mac2
+  #5 200 backend=B edge=edge1-mac2
+  #6 200 backend=B edge=edge1-mac2
+  #7 200 backend=B edge=edge1-mac2
+  #8 200 backend=B edge=edge1-mac2
+  PASS: all 8 requests succeeded via B
+mac2$ grep -E 'upstream_status=502|upstream_status=50[0-9], ' ~/cn-project/logs/nginx-access.log | tail -2; grep -E 'refused|temporarily disabled' ~/cn-project/logs/nginx-error.log | tail -2 | cut -c1-200
+10.7.22.168 [23/Nov/2026:02:26:32 +0530] "GET /api/status HTTP/2.0" status=502 edge=edge1-mac2 upstream=backend_pool upstream_status=502 rt=0.000
+10.7.22.168 [23/Nov/2026:02:26:49 +0530] "GET /api/status HTTP/2.0" status=200 edge=edge1-mac2 upstream=10.7.22.168:3001, 10.7.22.168:3002 upstream_status=502, 200 rt=0.226, 0.025
+2026/11/23 02:26:49 [error] 27473#0: *112 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.22.168, server: app.teamx.test, request: "GET /api
+2026/11/23 02:26:49 [warn] 27473#0: *112 upstream server temporarily disabled while connecting to upstream, client: 10.7.22.168, server: app.teamx.test, request: "GET /api/status HTTP/2.0", upstream: 
+
+--- [02:26:50] Restart Backend A - after fail_timeout (10 s) nginx retries it and it rejoins
+mac3$ ~/cn-project/bin/cn.sh backend start A
+[02:26:51 Antiks-MacBook-Pro] backend A STARTED on 0.0.0.0:3001 (pid 8423)
+  #1 200 backend=B edge=edge1-mac2
+  #2 200 backend=B edge=edge1-mac2
+  #3 200 backend=A edge=edge1-mac2
+  #4 200 backend=B edge=edge1-mac2
+  #5 200 backend=A edge=edge1-mac2
+  #6 200 backend=B edge=edge1-mac2
+mac2$ tail -6 ~/cn-project/logs/nginx-access.log | awk '{print $NF, $(NF-1), $(NF-2)}'
+rt=0.048 upstream_status=200 upstream=10.7.22.168:3002
+rt=0.030 upstream_status=200 upstream=10.7.22.168:3002
+rt=0.027 upstream_status=200 upstream=10.7.22.168:3001
+rt=0.022 upstream_status=200 upstream=10.7.22.168:3002
+rt=0.021 upstream_status=200 upstream=10.7.22.168:3001
+rt=0.023 upstream_status=200 upstream=10.7.22.168:3002
+/Users/antikmondal/cn-project/bin/cn.sh: line 90:  8423 Terminated: 15          BACKEND_ID="$id" PORT="$port" nohup .venv/bin/python app.py >> "$CN_HOME/logs/backend-$id.log" 2>&1

@@ -1,0 +1,56 @@
+
+==== EXTENSION A - BACKUP DNS RESOLVER  Mon Nov 23 03:06:55 IST 2026 ====
+
+--- [03:06:55] Client resolver list (both servers)
+$ grep nameserver /etc/resolv.conf
+nameserver 10.7.6.8
+nameserver 10.7.31.150
+mac1$ ~/cn-project/bin/cn.sh dns status
+[03:06:55 Tanmays-MacBook-Pro-2] dnsmasq UP (pid 56283) records: 10.7.31.150 app.teamX.test api.teamX.test
+mac2$ ~/cn-project/bin/cn.sh dns status
+[03:06:55 MacBook-Pro-13] dnsmasq UP (pid 28334) records: 10.7.31.150 app.teamX.test api.teamX.test
+$ dig app.teamX.test +noall +answer +stats | grep -E 'IN\s+A|SERVER'
+app.teamX.test.		30	IN	A	10.7.31.150
+;; SERVER: 10.7.6.8#53(10.7.6.8)
+
+--- [03:06:56] Stop the PRIMARY (dnsmasq on Mac 1)
+mac1$ ~/cn-project/bin/cn.sh dns stop
+[03:06:56 Tanmays-MacBook-Pro-2] dnsmasq STOPPED
+$ dig @10.7.6.8 app.teamX.test +time=2 +tries=1 | grep -E 'refused|timed out|status'
+;; connection timed out; no servers could be reached
+
+--- [03:06:58] The backup resolver has the same records
+$ dig @10.7.31.150 app.teamX.test +noall +answer +stats | grep -E 'IN\s+A|SERVER'
+app.teamX.test.		30	IN	A	10.7.31.150
+;; SERVER: 10.7.31.150#53(10.7.31.150)
+
+--- [03:06:58] System resolver (what browsers/curl use): wait for cached entry to expire, then resolve again
+$ dscacheutil -q host -a name app.teamX.test | grep ip_address
+ip_address: 10.7.31.150
+  HTTPS via backup DNS: 200 backend=A edge=edge1-mac2
+  PASS: client resolves with primary down
+mac2$ grep -iE 'query\[A\] app.teamX.test' ~/cn-project/logs/dnsmasq.log | tail -3   # backup served the client
+Nov 23 03:06:52 dnsmasq[28334]: query[A] app.teamx.test from 10.7.22.168
+Nov 23 03:06:58 dnsmasq[28334]: query[A] app.teamx.test from 10.7.22.168
+Nov 23 03:07:30 dnsmasq[28334]: query[A] app.teamx.test from 10.7.22.168
+
+--- [03:07:31] DNS failure vs application failure
+$ dig @10.7.31.150 app.teamX.test +short   # name resolution works ...
+10.7.31.150
+mac3$ ~/cn-project/bin/cn.sh backend stop A; ~/cn-project/bin/cn.sh backend stop B
+[03:07:31 Antiks-MacBook-Pro] backend A STOPPED (port 3001 closed)
+[03:07:31 Antiks-MacBook-Pro] backend B STOPPED (port 3002 closed)
+$ curlx -s -o /dev/null -w 'HTTP %{http_code}\n' https://app.teamX.test/api/status   # ... but the service is down (502)
+HTTP 502
+mac3$ ~/cn-project/bin/cn.sh backend start A; ~/cn-project/bin/cn.sh backend start B
+[03:07:32 Antiks-MacBook-Pro] backend A STARTED on 0.0.0.0:3001 (pid 15168)
+[03:07:32 Antiks-MacBook-Pro] backend B STARTED on 0.0.0.0:3002 (pid 15190)
+
+--- [03:07:32] Restore the primary
+mac1$ ~/cn-project/bin/cn.sh dns start
+[03:07:33 Tanmays-MacBook-Pro-2] dnsmasq STARTED (pid 63255) on udp/tcp 53
+$ dig app.teamX.test +noall +answer +stats | grep -E 'IN\s+A|SERVER'
+app.teamX.test.		30	IN	A	10.7.31.150
+;; SERVER: 10.7.6.8#53(10.7.6.8)
+/Users/antikmondal/cn-project/bin/cn.sh: line 90: 15168 Terminated: 15          BACKEND_ID="$id" PORT="$port" nohup .venv/bin/python app.py >> "$CN_HOME/logs/backend-$id.log" 2>&1
+/Users/antikmondal/cn-project/bin/cn.sh: line 90: 15190 Terminated: 15          BACKEND_ID="$id" PORT="$port" nohup .venv/bin/python app.py >> "$CN_HOME/logs/backend-$id.log" 2>&1

@@ -1,0 +1,3 @@
+# Project zone for teamX.test - served by BOTH dnsmasq resolvers.
+# Change the IP, then reload: scripts/phase2/cn.sh dns reload  (or cn.sh dns-record <ip>)
+10.7.31.150 app.teamX.test api.teamX.test

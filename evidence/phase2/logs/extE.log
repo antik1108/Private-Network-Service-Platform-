@@ -1,0 +1,50 @@
+
+==== EXTENSION E - DNS-BASED EDGE CUTOVER  Mon Nov 23 03:08:44 IST 2026 ====
+
+--- [03:08:44] Standby edge (Mac 3) runs the same config; prove it serves before cutover
+$ curlx -s --resolve app.teamX.test:443:10.7.22.168 -o /dev/null -w 'standby: %{http_code}\n' -D - https://app.teamX.test/edge-health | grep -iE 'x-edge|standby'
+x-edge: edge2-mac3
+standby: 200
+
+--- [03:08:44] Client A (this Mac) primes its cache: must be on edge1 before we start
+  200 backend=A edge=edge1-mac2
+
+--- [03:08:55] CUTOVER: app.teamX.test -> 10.7.22.168 on both resolvers
+mac1$ ~/cn-project/bin/cn.sh dns-record 10.7.22.168
+[03:08:55 Tanmays-MacBook-Pro-2] record app.teamX.test/api.teamX.test -> 10.7.22.168
+[03:08:55 Tanmays-MacBook-Pro-2] dnsmasq RELOADED records (SIGHUP: re-read teamX.hosts, cache cleared)
+mac2$ ~/cn-project/bin/cn.sh dns-record 10.7.22.168
+[03:08:57 MacBook-Pro-13] record app.teamX.test/api.teamX.test -> 10.7.22.168
+[03:08:57 MacBook-Pro-13] dnsmasq RELOADED records (SIGHUP: re-read teamX.hosts, cache cleared)
+
+--- [03:08:57] Client B (Mac 1) - a NEW lookup - goes to the standby immediately
+mac1$ curl -s --cacert ~/cn-project/tls/teamX-root-ca.crt -D - -o /dev/null https://app.teamX.test/api/status | grep -iE 'x-edge|x-backend'; dscacheutil -q host -a name app.teamX.test | grep ip_address
+x-backend: B
+x-edge: edge2-mac3
+ip_address: 10.7.22.168
+
+--- [03:08:58] Client A keeps hitting the OLD edge until its cached answer expires
+  t=+06s 200 backend=A edge=edge1-mac2
+  t=+10s 200 backend=B edge=edge1-mac2
+  t=+14s 200 backend=A edge=edge1-mac2
+  t=+18s 200 backend=B edge=edge1-mac2
+  t=+22s 200 backend=A edge=edge1-mac2
+  t=+27s 200 backend=B edge=edge1-mac2
+  t=+31s 200 backend=A edge=edge1-mac2
+  t=+35s 200 backend=A edge=edge2-mac3
+  PASS: client A moved to edge2 after TTL
+
+--- [03:09:29] Old edge can now be stopped for maintenance - nobody notices
+mac2$ ~/cn-project/bin/cn.sh edge stop
+[03:09:30 MacBook-Pro-13] nginx STOPPED
+  200 backend=B edge=edge2-mac3
+
+--- [03:09:30] Roll back: edge1 up, record back to 10.7.31.150
+mac2$ ~/cn-project/bin/cn.sh edge start >/dev/null; ~/cn-project/bin/cn.sh edge status
+[03:09:32 MacBook-Pro-13] nginx UP: *:443 *:80 *:8080
+mac1$ ~/cn-project/bin/cn.sh dns-record 10.7.31.150
+[03:09:32 Tanmays-MacBook-Pro-2] record app.teamX.test/api.teamX.test -> 10.7.31.150
+[03:09:32 Tanmays-MacBook-Pro-2] dnsmasq RELOADED records (SIGHUP: re-read teamX.hosts, cache cleared)
+mac2$ ~/cn-project/bin/cn.sh dns-record 10.7.31.150
+[03:09:32 MacBook-Pro-13] record app.teamX.test/api.teamX.test -> 10.7.31.150
+[03:09:32 MacBook-Pro-13] dnsmasq RELOADED records (SIGHUP: re-read teamX.hosts, cache cleared)

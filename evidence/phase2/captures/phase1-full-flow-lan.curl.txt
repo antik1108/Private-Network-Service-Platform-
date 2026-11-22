@@ -1,0 +1,120 @@
+* Host app.teamX.test:443 was resolved.
+* IPv6: (none)
+* IPv4: 10.7.31.150
+*   Trying 10.7.31.150:443...
+* Connected to app.teamX.test (10.7.31.150) port 443
+* ALPN: curl offers h2,http/1.1
+* (304) (OUT), TLS handshake, Client hello (1):
+} [226 bytes data]
+*  CAfile: /etc/ssl/cert.pem
+*  CApath: none
+* (304) (IN), TLS handshake, Server hello (2):
+{ [100 bytes data]
+* TLSv1.2 (IN), TLS handshake, Certificate (11):
+{ [1130 bytes data]
+* TLSv1.2 (IN), TLS handshake, Server key exchange (12):
+{ [300 bytes data]
+* TLSv1.2 (IN), TLS handshake, Server finished (14):
+{ [4 bytes data]
+* TLSv1.2 (OUT), TLS handshake, Client key exchange (16):
+} [37 bytes data]
+* TLSv1.2 (OUT), TLS change cipher, Change cipher spec (1):
+} [1 bytes data]
+* TLSv1.2 (OUT), TLS handshake, Finished (20):
+} [16 bytes data]
+* TLSv1.2 (IN), TLS change cipher, Change cipher spec (1):
+{ [1 bytes data]
+* TLSv1.2 (IN), TLS handshake, Finished (20):
+{ [16 bytes data]
+* SSL connection using TLSv1.2 / ECDHE-RSA-CHACHA20-POLY1305 / [blank] / UNDEF
+* ALPN: server accepted h2
+* Server certificate:
+*  subject: O=mkcert development certificate; OU=vansh@MacBook-Pro-13.local (Vansh  )
+*  start date: Nov 22 20:28:27 2026 GMT
+*  expire date: Feb 22 20:28:27 2029 GMT
+*  subjectAltName: host "app.teamX.test" matched cert's "app.teamX.test"
+*  issuer: O=mkcert development CA; OU=vansh@MacBook-Pro-13.local (Vansh  ); CN=mkcert vansh@MacBook-Pro-13.local (Vansh  )
+*  SSL certificate verify ok.
+* using HTTP/2
+* [HTTP/2] [1] OPENED stream for https://app.teamX.test/api/status
+* [HTTP/2] [1] [:method: GET]
+* [HTTP/2] [1] [:scheme: https]
+* [HTTP/2] [1] [:authority: app.teamX.test]
+* [HTTP/2] [1] [:path: /api/status]
+* [HTTP/2] [1] [user-agent: curl/8.7.1]
+* [HTTP/2] [1] [accept: */*]
+> GET /api/status HTTP/2
+> Host: app.teamX.test
+> User-Agent: curl/8.7.1
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/2 200 
+< server: nginx/1.31.6
+< date: Sun, 22 Nov 2026 21:00:17 GMT
+< content-type: application/json
+< content-length: 68
+< x-backend: A
+< cache-control: no-store
+< x-edge: edge1-mac2
+< 
+{ [68 bytes data]
+* Connection #0 to host app.teamX.test left intact
+{"backend":"A","hostname":"Antiks-MacBook-Pro.local","status":"ok"}
+* Host app.teamX.test:443 was resolved.
+* IPv6: (none)
+* IPv4: 10.7.31.150
+*   Trying 10.7.31.150:443...
+* Connected to app.teamX.test (10.7.31.150) port 443
+* ALPN: curl offers h2,http/1.1
+* (304) (OUT), TLS handshake, Client hello (1):
+} [319 bytes data]
+*  CAfile: /etc/ssl/cert.pem
+*  CApath: none
+* (304) (IN), TLS handshake, Server hello (2):
+{ [122 bytes data]
+* (304) (IN), TLS handshake, Unknown (8):
+{ [47 bytes data]
+* (304) (IN), TLS handshake, Certificate (11):
+{ [1133 bytes data]
+* (304) (IN), TLS handshake, CERT verify (15):
+{ [264 bytes data]
+* (304) (IN), TLS handshake, Finished (20):
+{ [36 bytes data]
+* (304) (OUT), TLS handshake, Finished (20):
+} [36 bytes data]
+* SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
+* ALPN: server accepted h2
+* Server certificate:
+*  subject: O=mkcert development certificate; OU=vansh@MacBook-Pro-13.local (Vansh  )
+*  start date: Nov 22 20:28:27 2026 GMT
+*  expire date: Feb 22 20:28:27 2029 GMT
+*  subjectAltName: host "app.teamX.test" matched cert's "app.teamX.test"
+*  issuer: O=mkcert development CA; OU=vansh@MacBook-Pro-13.local (Vansh  ); CN=mkcert vansh@MacBook-Pro-13.local (Vansh  )
+*  SSL certificate verify ok.
+* using HTTP/2
+* [HTTP/2] [1] OPENED stream for https://app.teamX.test/api/status
+* [HTTP/2] [1] [:method: GET]
+* [HTTP/2] [1] [:scheme: https]
+* [HTTP/2] [1] [:authority: app.teamX.test]
+* [HTTP/2] [1] [:path: /api/status]
+* [HTTP/2] [1] [user-agent: curl/8.7.1]
+* [HTTP/2] [1] [accept: */*]
+> GET /api/status HTTP/2
+> Host: app.teamX.test
+> User-Agent: curl/8.7.1
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/2 200 
+< server: nginx/1.31.6
+< date: Sun, 22 Nov 2026 21:00:17 GMT
+< content-type: application/json
+< content-length: 68
+< x-backend: B
+< cache-control: no-store
+< x-edge: edge1-mac2
+< 
+{ [68 bytes data]
+* Connection #0 to host app.teamX.test left intact
+{"backend":"B","hostname":"Antiks-MacBook-Pro.local","status":"ok"}

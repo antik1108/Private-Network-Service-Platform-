@@ -1,3 +1,5 @@
+> **Historical Phase 1 record (Sept-Oct 2026).** Addresses here are the DHCP leases at that time (e.g. DNS+backends on 10.7.7.19, edge on 10.7.10.162 / 10.7.17.201). Current addresses: [team/team.env](../../team/team.env). Phase 2 evidence: [evidence/phase2/](../phase2).
+
 # Recorded Verification Output
 
 This document contains live terminal execution outputs validating all Phase 1 functionalities.

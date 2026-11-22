@@ -1,24 +1,39 @@
-# dnsmasq config template for Mac 1 (Private DNS Server)
+# dnsmasq - private DNS for @TEAM_DOMAIN@  (role: @DNS_ROLE@ resolver on @NODE_IP@)
 #
-# HOW TO USE:
-#   1. Fill in team/team.env with real IPs first.
-#   2. Replace <MAC1_IP> and <MAC2_IP> and teamX below.
-#   3. Copy this file's contents into:
-#      /opt/homebrew/etc/dnsmasq.conf
-#   4. Start the service: sudo brew services start dnsmasq
+# Rendered by scripts/render-configs.sh from team/team.env. Do not edit the
+# rendered copy - edit the template / team.env and re-render.
+#
+# The SAME file runs on the primary (Mac 1) and the backup (Mac 2): both
+# serve identical project records, which is what Extension A requires.
 
-# Private domain records - point both at Mac 2 (the edge/nginx machine)
-address=/app.teamX.test/<MAC2_IP>
-address=/api.teamX.test/<MAC2_IP>
+# ---- Listening -------------------------------------------------------------
+# Port 53 on the wildcard address. On macOS an unprivileged process may bind a
+# port < 1024 only on the wildcard address, so binding 0.0.0.0 lets dnsmasq
+# run without sudo. Queries arrive on every interface (LAN + loopback).
+port=53
+bind-interfaces
+listen-address=0.0.0.0
 
-# Only listen on localhost and the LAN interface (not the whole internet)
-listen-address=127.0.0.1,<MAC1_IP>
+# ---- Project zone ----------------------------------------------------------
+# Records live in a separate hosts file so they can be changed live:
+# edit the file, send SIGHUP, and dnsmasq reloads it and clears its cache
+# (used for the Extension B TTL demo and the Extension E edge cutover).
+no-hosts
+addn-hosts=@CN_HOME@/dnsmasq/teamX.hosts
+# TTL that clients may cache our answers for (Extension B).
+local-ttl=@DNS_TTL@
+# Never forward project names to the Internet: unknown *.@TEAM_DOMAIN@ -> NXDOMAIN.
+local=/@TEAM_DOMAIN@/
+domain-needed
+bogus-priv
 
-# Don't forward to /etc/resolv.conf or poll it for changes -
-# forward other domains to a public resolver instead.
+# ---- Everything else is forwarded upstream ---------------------------------
 no-resolv
 no-poll
-server=8.8.8.8
+@UPSTREAM_SERVER_LINES@
 
-# Optional: short TTL for Phase 2, Extension B (DNS TTL demo)
-# local-ttl=30
+# ---- Operations ------------------------------------------------------------
+log-queries
+log-facility=@CN_HOME@/logs/dnsmasq.log
+pid-file=@CN_HOME@/run/dnsmasq.pid
+cache-size=1000

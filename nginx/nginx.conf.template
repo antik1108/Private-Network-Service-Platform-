@@ -1,46 +1,77 @@
-# nginx config template for Mac 2 (Edge / Reverse Proxy / Load Balancer)
+# nginx edge - reverse proxy, TLS termination and load balancer for @TEAM_DOMAIN@
+# Role: @EDGE_NAME@ on @NODE_IP@
 #
-# HOW TO USE:
-#   1. Fill in team/team.env with your team's real IP addresses (run
-#      scripts/get-my-ip.sh on each Mac first).
-#   2. Replace <MAC3_IP>, <MAC4_IP> and teamX below with real values.
-#   3. Copy the result to your Homebrew nginx config location, e.g.
-#      /opt/homebrew/etc/nginx/servers/cn-project.conf
-#      (or paste the "upstream" + "server" blocks into the main nginx.conf
-#      inside the existing http {} block).
-#   4. Restart nginx: sudo brew services restart nginx
+# Rendered by scripts/render-configs.sh from team/team.env and installed at
+# /opt/homebrew/etc/nginx/servers/cn-project.conf (Homebrew's nginx.conf
+# includes servers/*). The primary edge (Mac 2) and the standby edge
+# (Mac 3/4, Extension E) run this same file; only the X-Edge label differs.
+
+# Access log that records which backend handled each request and whether
+# nginx had to retry - this is the evidence for Extension D.
+log_format cn_edge '$remote_addr [$time_local] "$request" status=$status '
+                   'edge=@EDGE_NAME@ upstream=$upstream_addr '
+                   'upstream_status=$upstream_status rt=$upstream_response_time';
 
 upstream backend_pool {
-    server 10.7.8.217:3001 max_fails=2 fail_timeout=10s;   # Backend A
-    server 10.7.8.217:3002 max_fails=2 fail_timeout=10s;   # Backend B
-    # default strategy is round-robin; for least-connections instead:
-    # least_conn;
+    # Default strategy: round-robin (A, B, A, B, ...).
+    #
+    # Health detection (Extension D) - open-source nginx uses passive checks:
+    #  * a failed connect/timeout counts as a failure;
+    #  * after max_fails=1 failure the server is marked down for
+    #    fail_timeout=10s and receives no traffic;
+    #  * after 10s nginx probes it again with one real request; if that works
+    #    it rejoins the rotation automatically.
+    server @BACKEND_A@ max_fails=1 fail_timeout=10s;   # Backend A
+    server @BACKEND_B@ max_fails=1 fail_timeout=10s;   # Backend B
 }
 
-# Plain HTTP - useful for an early sanity check before TLS is set up (Task D)
+# Port 80: redirect everything to HTTPS.
 server {
     listen 80;
-    server_name app.teamX.test;
+    server_name app.@TEAM_DOMAIN@ api.@TEAM_DOMAIN@;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    # "listen 443" with no address = wildcard bind, which macOS allows
+    # without root. Use 8443 here if your Mac refuses 443.
+    listen 443 ssl;
+    http2 on;
+    server_name app.@TEAM_DOMAIN@ api.@TEAM_DOMAIN@;
+
+    ssl_certificate     @CN_HOME@/tls/app.teamX.test.crt;
+    ssl_certificate_key @CN_HOME@/tls/app.teamX.test.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_session_cache   shared:cn_tls:1m;
+
+    access_log @CN_HOME@/logs/nginx-access.log cn_edge;
+    error_log  @CN_HOME@/logs/nginx-error.log warn;
+
+    # Which edge answered (Extension E cutover evidence). Backend IPs are NOT
+    # exposed to clients; they only appear in the edge's own log.
+    add_header X-Edge @EDGE_NAME@ always;
+
+    # Edge liveness check that does not touch the backends.
+    location = /edge-health {
+        default_type text/plain;
+        return 200 "edge @EDGE_NAME@ ok\n";
+    }
 
     location / {
         proxy_pass http://backend_pool;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Fail fast so a dead backend costs ~ms, not seconds.
+        proxy_connect_timeout 2s;
+        proxy_read_timeout    10s;
+
+        # If a backend refuses / times out / returns a gateway error, retry
+        # the SAME request on the other backend, so the client never sees it.
+        proxy_next_upstream       error timeout http_502 http_503 http_504;
+        proxy_next_upstream_tries 2;
     }
 }
-
-# HTTPS - enable this block once Task E (mkcert) is done.
-# Use 8443 instead of 443 if your Mac won't let you bind to 443.
-# server {
-#     listen 443 ssl;
-#     server_name app.teamX.test;
-#
-#     ssl_certificate     /path/to/app.teamX.test.pem;
-#     ssl_certificate_key /path/to/app.teamX.test-key.pem;
-#
-#     location / {
-#         proxy_pass http://backend_pool;
-#         proxy_set_header Host $host;
-#         proxy_set_header X-Real-IP $remote_addr;
-#     }
-# }

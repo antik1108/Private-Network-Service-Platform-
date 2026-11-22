@@ -1,0 +1,54 @@
+
+==== PHASE 1 FAILURE DEMONSTRATIONS  Mon Nov 23 02:26:28 IST 2026 ====
+
+--- [02:26:28] F1 Wrong DNS server: ask a resolver that does not know our zone
+$ dig @8.8.8.8 app.teamX.test +noall +comments | grep status
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 54348
+$ dig @10.7.22.168 app.teamX.test +time=2 +tries=1 | grep -E 'status|timed out|refused'   # no DNS server on Mac 3
+;; connection timed out; no servers could be reached
+$ nc -z -G 3 10.7.31.150 443 && echo 'but TCP to the edge IP still works -> DNS and IP are independent layers'
+Connection to 10.7.31.150 port 443 [tcp/https] succeeded!
+but TCP to the edge IP still works -> DNS and IP are independent layers
+
+--- [02:26:30] F2 Record points to a wrong IP (resolve OK, connect to wrong place)
+$ curlx -s --max-time 4 --resolve app.teamX.test:443:10.7.6.8 https://app.teamX.test/api/status; echo "exit=$? (Mac 1 has no web server: TCP refused)"
+exit=7 (Mac 1 has no web server: TCP refused)
+
+--- [02:26:30] F3 One backend stopped -> service continues
+mac3$ ~/cn-project/bin/cn.sh backend stop A
+[02:26:31 Antiks-MacBook-Pro] backend A STOPPED (port 3001 closed)
+  #1 200 backend=B edge=edge1-mac2
+  #2 200 backend=B edge=edge1-mac2
+  #3 200 backend=B edge=edge1-mac2
+  #4 200 backend=B edge=edge1-mac2
+mac3$ ~/cn-project/bin/cn.sh backend start A
+[02:26:32 Antiks-MacBook-Pro] backend A STARTED on 0.0.0.0:3001 (pid 7968)
+
+--- [02:26:32] F4 Both backends stopped -> DNS + TLS fine, 502 from the edge
+mac3$ ~/cn-project/bin/cn.sh backend stop A; ~/cn-project/bin/cn.sh backend stop B
+/Users/antikmondal/cn-project/bin/cn.sh: line 90:  7968 Terminated: 15          BACKEND_ID="$id" PORT="$port" nohup .venv/bin/python app.py >> "$CN_HOME/logs/backend-$id.log" 2>&1
+[02:26:32 Antiks-MacBook-Pro] backend A STOPPED (port 3001 closed)
+[02:26:32 Antiks-MacBook-Pro] backend B STOPPED (port 3002 closed)
+$ dig app.teamX.test +short
+10.7.31.150
+$ curlx -sv https://app.teamX.test/api/status 2>&1 | grep -E 'SSL certificate verify|^< HTTP|^< x-edge'
+*  SSL certificate verify ok.
+< HTTP/2 502 
+< x-edge: edge1-mac2
+  PASS: both down -> 502
+mac2$ tail -3 ~/cn-project/logs/nginx-error.log | cut -c1-220
+2026/11/23 02:26:32 [warn] 27473#0: *67 upstream server temporarily disabled while connecting to upstream, client: 10.7.22.168, server: app.teamx.test, request: "GET /api/status HTTP/2.0", upstream: "http://10.7.22.168:3
+2026/11/23 02:26:32 [error] 27473#0: *67 no live upstreams while connecting to upstream, client: 10.7.22.168, server: app.teamx.test, request: "GET /api/status HTTP/2.0", upstream: "http://backend_pool/api/status", host:
+2026/11/23 02:26:32 [error] 27473#0: *69 no live upstreams while connecting to upstream, client: 10.7.22.168, server: app.teamx.test, request: "GET /api/status HTTP/2.0", upstream: "http://backend_pool/api/status", host:
+mac3$ ~/cn-project/bin/cn.sh backend start A; ~/cn-project/bin/cn.sh backend start B
+[02:26:33 Antiks-MacBook-Pro] backend A STARTED on 0.0.0.0:3001 (pid 8054)
+[02:26:34 Antiks-MacBook-Pro] backend B STARTED on 0.0.0.0:3002 (pid 8079)
+
+--- [02:26:34] F5 Wrong destination port: host reachable, port closed
+$ curlx -s --max-time 4 https://app.teamX.test:8443/api/status; echo "exit=$? (7 = connection refused on :8443)"
+exit=7 (7 = connection refused on :8443)
+$ nc -z -G 3 10.7.31.150 443 && echo ':443 open'
+Connection to 10.7.31.150 port 443 [tcp/https] succeeded!
+:443 open
+/Users/antikmondal/cn-project/bin/cn.sh: line 90:  8054 Terminated: 15          BACKEND_ID="$id" PORT="$port" nohup .venv/bin/python app.py >> "$CN_HOME/logs/backend-$id.log" 2>&1
+/Users/antikmondal/cn-project/bin/cn.sh: line 90:  8079 Terminated: 15          BACKEND_ID="$id" PORT="$port" nohup .venv/bin/python app.py >> "$CN_HOME/logs/backend-$id.log" 2>&1

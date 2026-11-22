@@ -1,3 +1,5 @@
+> **Updated 23 Nov 2026:** IPs refreshed. DNS primary is Mac 1 `10.7.6.8` (backup Mac 2 `10.7.31.150`), edge `10.7.31.150`, backends `10.7.22.168:3001/3002`. Since Phase 2, backends accept direct connections **only from the edge** while the pf firewall is applied, so run step 5 from Mac 2. Config now lives in `~/cn-project/` (see [phase2-runbook.md](phase2-runbook.md)). Full Phase 1+2 demo sequence: [phase2-runbook.md](phase2-runbook.md#3-final-demonstration-sequence-section-8-of-the-brief).
+
 # Phase 1 Live Demo Commands
 
 Run each command in the designated location as specified. These commands follow the exact evaluation flow for testing and recording video demonstrations.
@@ -8,7 +10,7 @@ Run each command in the designated location as specified. These commands follow 
 
 **On DNS Server (Mac 1):**
 ```bash
-tail -n 15 /opt/homebrew/etc/dnsmasq.conf
+cat ~/cn-project/dnsmasq/dnsmasq.conf ~/cn-project/dnsmasq/teamX.hosts
 ```
 *Show: listen-address, port 53, domain definitions, and host-record mappings with 30s TTL.*
 
@@ -28,7 +30,7 @@ cat backend/app.py
 
 **On Edge / Load Balancer (Mac 2):**
 ```bash
-cat /opt/homebrew/etc/nginx/servers/cn-project.conf
+cat /opt/homebrew/etc/nginx/servers/cn-project.conf   # installed from ~/cn-project/nginx/
 ```
 *Show: upstream block with both backend IPs/ports, `listen 443 ssl`, certificate paths, and `proxy_pass`.*
 
@@ -38,9 +40,9 @@ cat /opt/homebrew/etc/nginx/servers/cn-project.conf
 
 **From any client Mac:**
 ```bash
-dig @10.7.7.19 app.teamX.test
+dig @10.7.6.8 app.teamX.test
 ```
-*Expected: Answer section shows Mac 2 IP (`10.7.10.162`) with 30s TTL.*
+*Expected: Answer section shows Mac 2 IP (`10.7.31.150`) with 30s TTL.*
 
 **Public DNS Isolation Check:**
 ```bash
@@ -54,8 +56,8 @@ dig @8.8.8.8 app.teamX.test
 
 **From Mac 2 or Client:**
 ```bash
-curl -i http://10.7.7.19:3001/api/status
-curl -i http://10.7.7.19:3002/api/status
+curl -i http://10.7.22.168:3001/api/status
+curl -i http://10.7.22.168:3002/api/status
 ```
 *Expected: HTTP 200 with headers `X-Backend: A` and `X-Backend: B` respectively.*
 
@@ -115,18 +117,18 @@ curl -i -H 'If-None-Match: "cn-cache-v1"' https://app.teamX.test/api/cache
    ```
 2. Identify network interface:
    ```bash
-   route -n get 10.7.10.162
+   route -n get 10.7.31.150
    ```
 3. Start Wireshark capture on the identified interface (`en0` / `lo0`).
 4. Execute test commands:
    ```bash
-   dig @10.7.7.19 app.teamX.test
+   dig @10.7.6.8 app.teamX.test
    curl --tlsv1.2 --tls-max 1.2 -v https://app.teamX.test
    ```
 5. Stop Wireshark capture and save `.pcapng`.
 
 **Wireshark Filter Reference:**
-- **DNS Query/Response:** `dns && ip.addr == 10.7.7.19`
+- **DNS Query/Response:** `dns && ip.addr == 10.7.6.8`
 - **TCP 3-Way Handshake:** `tcp.flags.syn == 1 && tcp.port == 443` $\to$ follow stream `tcp.stream eq 0`
 - **TLS Handshake & Encrypted Data:** `tcp.stream eq 0 && tls`
 

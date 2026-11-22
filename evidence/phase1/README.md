@@ -1,3 +1,5 @@
+> **Historical Phase 1 record (Sept-Oct 2026).** Addresses here are the DHCP leases at that time (e.g. DNS+backends on 10.7.7.19, edge on 10.7.10.162 / 10.7.17.201). Current addresses: [team/team.env](../../team/team.env). Phase 2 evidence: [evidence/phase2/](../phase2).
+
 # Phase 1 Wireshark Packet Evidence Guide
 
 This document catalogs and explains the packet capture artifacts and visual evidence gathered for Phase 1 verification.

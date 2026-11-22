@@ -1,0 +1,55 @@
+
+==== EXTENSION B - TTL AND CONTROLLED RECORD CHANGE  Mon Nov 23 03:23:14 IST 2026 ====
+
+--- [03:23:14] Record TTL is 30 s (answer section 2nd column)
+$ dig @10.7.6.8 app.teamX.test +noall +answer
+
+; <<>> DiG 9.10.6 <<>> @10.7.6.8 app.teamX.test +noall +answer
+; (1 server found)
+;; global options: +cmd
+app.teamX.test.		30	IN	A	10.7.31.150
+
+--- [03:23:14] Client resolves -> answer is now cached by the client (mDNSResponder)
+$ dscacheutil -q host -a name app.teamX.test | grep ip_address
+ip_address: 10.7.31.150
+
+--- [03:23:14] Change the record to 10.7.22.168 on BOTH resolvers
+mac1$ ~/cn-project/bin/cn.sh dns-record 10.7.22.168
+[03:23:14 Tanmays-MacBook-Pro-2] record app.teamX.test/api.teamX.test -> 10.7.22.168
+[03:23:14 Tanmays-MacBook-Pro-2] dnsmasq RELOADED records (SIGHUP: re-read teamX.hosts, cache cleared)
+mac2$ ~/cn-project/bin/cn.sh dns-record 10.7.22.168
+[03:23:14 MacBook-Pro-13] record app.teamX.test/api.teamX.test -> 10.7.22.168
+[03:23:14 MacBook-Pro-13] dnsmasq RELOADED records (SIGHUP: re-read teamX.hosts, cache cleared)
+$ dig @10.7.6.8 app.teamX.test +noall +answer   # authoritative answer changes immediately
+
+; <<>> DiG 9.10.6 <<>> @10.7.6.8 app.teamX.test +noall +answer
+; (1 server found)
+;; global options: +cmd
+app.teamX.test.		30	IN	A	10.7.22.168
+
+--- [03:23:15] Poll the client every 5 s: cached (old) answer until the TTL expires
+  t=+01s client=10.7.31.150    server=10.7.22.168
+  t=+06s client=10.7.31.150    server=10.7.22.168
+  t=+11s client=10.7.31.150    server=10.7.22.168
+  t=+16s client=10.7.31.150    server=10.7.22.168
+  t=+21s client=10.7.31.150    server=10.7.22.168
+  t=+26s client=10.7.31.150    server=10.7.22.168
+  t=+31s client=10.7.31.150    server=10.7.22.168
+  t=+36s client=10.7.31.150    server=10.7.22.168
+  t=+41s client=10.7.22.168    server=10.7.22.168
+  PASS: client switched to the new IP within TTL+slack
+
+--- [03:23:55] Change it back, then flush the client cache manually (needs sudo) -> immediate change
+$ dscacheutil -q host -a name app.teamX.test | grep ip_address   # re-cache NEW
+ip_address: 10.7.22.168
+mac1$ ~/cn-project/bin/cn.sh dns-record 10.7.31.150
+[03:23:56 Tanmays-MacBook-Pro-2] record app.teamX.test/api.teamX.test -> 10.7.31.150
+[03:23:56 Tanmays-MacBook-Pro-2] dnsmasq RELOADED records (SIGHUP: re-read teamX.hosts, cache cleared)
+mac2$ ~/cn-project/bin/cn.sh dns-record 10.7.31.150
+[03:23:56 MacBook-Pro-13] record app.teamX.test/api.teamX.test -> 10.7.31.150
+[03:23:56 MacBook-Pro-13] dnsmasq RELOADED records (SIGHUP: re-read teamX.hosts, cache cleared)
+$ dscacheutil -q host -a name app.teamX.test | grep ip_address   # still NEW (cached)
+ip_address: 10.7.22.168
+$ sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
+$ dscacheutil -q host -a name app.teamX.test | grep ip_address   # OLD immediately after flush
+ip_address: 10.7.31.150

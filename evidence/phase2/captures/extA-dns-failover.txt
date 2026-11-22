@@ -1,0 +1,10 @@
+# /Users/antikmondal/Downloads/cn-starter/evidence/phase2/captures/extA-dns-failover.pcapng
+1 0.000000000 10.7.22.168 10.7.6.8 DNS Standard\ query\ 0xf001\ A\ app.teamX.test\ OPT
+2 0.000006000 10.7.22.168 10.7.31.150 DNS Standard\ query\ 0xf001\ A\ app.teamX.test\ OPT
+3 0.009749000 10.7.31.150 10.7.22.168 DNS Standard\ query\ response\ 0xf001\ A\ app.teamX.test\ A\ 10.7.31.150\ OPT
+4 0.070002000 10.7.6.8 10.7.22.168 DNS Standard\ query\ response\ 0xf001\ A\ app.teamX.test\ A\ 10.7.31.150\ OPT
+5 0.070187000 10.7.22.168,10.7.6.8 10.7.6.8,10.7.22.168 ICMP Destination\ unreachable\ (Port\ unreachable)
+6 1.649564000 10.7.22.168 10.7.31.150 DNS Standard\ query\ 0x6402\ A\ app.teamX.test\ OPT
+7 1.649579000 10.7.22.168 10.7.6.8 DNS Standard\ query\ 0x6402\ A\ app.teamX.test\ OPT
+8 1.656754000 10.7.6.8,10.7.22.168 10.7.22.168,10.7.6.8 ICMP Destination\ unreachable\ (Port\ unreachable)
+9 1.659649000 10.7.31.150 10.7.22.168 DNS Standard\ query\ response\ 0x6402\ A\ app.teamX.test\ A\ 10.7.31.150\ OPT

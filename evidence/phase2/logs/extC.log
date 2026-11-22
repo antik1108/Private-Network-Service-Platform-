@@ -1,0 +1,35 @@
+
+==== EXTENSION C - SERVICE ISOLATION  Mon Nov 23 02:27:03 IST 2026 ====
+
+--- [02:27:03] Firewall rules active on the backend Mac (anchor com.apple/cn-backend-isolation)
+backend_ports = "{ 3001, 3002 }"
+edge_hosts    = "{ 10.7.31.150 }"
+pass in quick on lo0 all
+pass in quick proto tcp from $edge_hosts to any port $backend_ports
+block drop in quick proto tcp from any to any port $backend_ports
+
+--- [02:27:03] Edge (Mac 2) -> backends: allowed
+mac2$ curl -s -m 4 -o /dev/null -w 'A: %{http_code}\n' http://10.7.22.168:3001/api/status; curl -s -m 4 -o /dev/null -w 'B: %{http_code}\n' http://10.7.22.168:3002/api/status
+A: 200
+B: 200
+
+--- [02:27:03] Client (Mac 1) -> backends directly: blocked (SYN dropped -> timeout)
+mac1$ curl -s -m 4 -o /dev/null -w 'A: %{http_code}\n' http://10.7.22.168:3001/api/status; echo exit=$?; nc -z -G 3 10.7.22.168 3002; echo nc_exit=$?
+A: 000
+exit=28
+nc_exit=1
+  PASS: edge reaches backend A
+  PASS: client blocked from backend A
+
+--- [02:27:15] Client through the edge: still works
+mac1$ curl -s --cacert ~/cn-project/tls/teamX-root-ca.crt --resolve app.teamX.test:443:10.7.31.150 -o /dev/null -w 'via edge: %{http_code}\n' https://app.teamX.test/api/status
+via edge: 200
+
+--- [02:48:28] ROLLBACK: sudo scripts/phase2/firewall.sh rollback (run by Antik)
+$ ls config/firewall-state/   # pf token released, rollback copy kept
+etc-pf.conf.bak
+pf-before.rules
+pf-before.status
+mac1$ curl -s -m 4 -o /dev/null -w "client -> backend A: %{http_code}" http://10.7.22.168:3001/api/status
+client -> backend A: 200
+  -> original (open) configuration restored after the demonstration

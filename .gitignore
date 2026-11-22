@@ -1,7 +1,7 @@
-# Local, machine-specific - never commit real IPs or certs
-team/team.env
-*.pem
+# Private keys never leave the edge machines
 *.key
+*-key.pem
+rootCA-key.pem
 .venv/
 __pycache__/
 *.pyc
@@ -12,4 +12,11 @@ Computer-Network-Project/
 
 # Wireshark captures can be large - keep only the final chosen ones
 *.pcapng
+*.pcap
 !evidence/**/*.pcapng
+!evidence/**/*.pcap
+
+# Local machine state written by the sudo helper scripts
+config/.dns-before-cn-project.txt
+config/.etc-resolver-test.bak
+config/firewall-state/

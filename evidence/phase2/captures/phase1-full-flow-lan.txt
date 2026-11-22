@@ -1,0 +1,33 @@
+# /Users/antikmondal/Downloads/cn-starter/evidence/phase2/captures/phase1-full-flow-lan.pcapng  (Mon Nov 23 02:30:18 IST 2026)  client 10.7.22.168
+## DNS (filter: dns)
+1 10.7.22.168 57063 10.7.31.150 53 app.teamX.test  
+2 10.7.22.168 62521 10.7.6.8 53 app.teamX.test  
+3 10.7.6.8 53 10.7.22.168 62521 app.teamX.test 10.7.31.150 30
+4 10.7.31.150 53 10.7.22.168 57063 app.teamX.test 10.7.31.150 30
+## TCP handshakes to 443 (filter: tcp.flags.syn==1)
+5 0 10.7.22.168 53151 10.7.31.150 443 ····CE····S· 1681314512 0
+6 0 10.7.31.150 443 10.7.22.168 53151 ·····E·A··S· 2112791351 1681314513
+24 1 10.7.31.150 58063 10.7.22.168 3001 ····CE····S· 51349962 0
+28 1 10.7.22.168 3001 10.7.31.150 58063 ·····E·A··S· 3669083892 51349963
+53 2 10.7.22.168 53152 10.7.31.150 443 ····CE····S· 3925170366 0
+54 2 10.7.31.150 443 10.7.22.168 53152 ·····E·A··S· 4221010999 3925170367
+72 3 10.7.31.150 58064 10.7.22.168 3002 ····CE····S· 2602102942 0
+74 3 10.7.22.168 3002 10.7.31.150 58064 ·····E·A··S· 4220633617 2602102943
+## TLS handshake records (filter: tls.handshake)
+8 0 10.7.22.168 10.7.31.150 0x0303 Client\ Hello\ (SNI=app.teamx.test) app.teamx.test
+11 0 10.7.31.150 10.7.22.168 0x0303,0x0303 Server\ Hello,\ Certificate 
+12 0 10.7.31.150 10.7.22.168 0x0303,0x0303 Server\ Key\ Exchange,\ Server\ Hello\ Done 
+14 0 10.7.22.168 10.7.31.150 0x0303,0x0303,0x0303 Client\ Key\ Exchange,\ Change\ Cipher\ Spec,\ Encrypted\ Handshake\ Message 
+16 0 10.7.31.150 10.7.22.168 0x0303,0x0303 Change\ Cipher\ Spec,\ Encrypted\ Handshake\ Message 
+56 2 10.7.22.168 10.7.31.150 0x0301 Client\ Hello\ (SNI=app.teamx.test) app.teamx.test
+59 2 10.7.31.150 10.7.22.168 0x0303,0x0303,0x0303,0x0303 Server\ Hello,\ Change\ Cipher\ Spec,\ Application\ Data,\ Application\ Data 
+62 2 10.7.22.168 10.7.31.150 0x0303 Change\ Cipher\ Spec 
+## Encrypted application data (first 6)
+18 0 10.7.22.168 10.7.31.150 151
+19 0 10.7.22.168 10.7.31.150 135
+20 0 10.7.31.150 10.7.22.168 127
+22 0 10.7.22.168 10.7.31.150 96
+26 0 10.7.31.150 10.7.22.168 96
+39 0 10.7.31.150 10.7.22.168 270
+## Certificate subject sent by the server
+11 vansh@MacBook-Pro-13.local\ (Vansh\ \ ),mkcert\ vansh@MacBook-Pro-13.local\ (Vansh\ \ ),vansh@MacBook-Pro-13.local\ (Vansh\ \ ) app.teamX.test,api.teamX.test
