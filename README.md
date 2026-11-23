@@ -86,6 +86,7 @@ evidence/phase1, phase2        logs, captures, screenshots
 
 ## Documentation
 
+- **[Presentation Guide](docs/presentation-guide.md)**: the whole project in plain language + live demo script
 - [Phase 2 Report](docs/phase2-report.md): what changed, test results, troubleshooting, learning summary
 - [Phase 2 Runbook](docs/phase2-runbook.md): setup, final demo sequence (steps 1–11), rollback
 - [Architecture](docs/architecture.md): topology, IP/service table, request flow, layer map
