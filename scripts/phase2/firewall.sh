@@ -22,11 +22,19 @@ apply)
         cp /etc/pf.conf "$STATE/etc-pf.conf.bak"
         echo "Saved rollback copy in $STATE/"
     fi
-    pfctl -nf "$RULES" -a "$ANCHOR"                       # syntax check first
-    pfctl -a "$ANCHOR" -f "$RULES" 2>/dev/null
+    [ -f "$RULES" ] || { echo "ERROR: $RULES missing - run scripts/render-configs.sh"; exit 1; }
+    pfctl -nf "$RULES" -a "$ANCHOR" 2>&1 | grep -v -E 'ALTQ|^$' || true   # syntax check (prints errors only)
+    pfctl -a "$ANCHOR" -f "$RULES" 2>&1 | grep -v -E 'ALTQ|flushing of rules|^$' || true
     # -E takes a reference on pf; keep the token so rollback only releases ours.
-    pfctl -E 2>&1 | awk '/Token/{print $NF}' > "$STATE/pf-token"
-    echo "Applied. Anchor $ANCHOR now contains:"; pfctl -a "$ANCHOR" -sr ;;
+    { pfctl -E 2>&1 || true; } | awk '/Token/{print $NF}' > "$STATE/pf-token"
+    n="$(pfctl -a "$ANCHOR" -sr 2>/dev/null | grep -c . || true)"
+    if [ "${n:-0}" -ge 3 ]; then
+        echo "APPLIED: $n rules loaded in anchor $ANCHOR (pf $(pfctl -s info 2>/dev/null | head -1 | awk '{print $2}'))"
+        pfctl -a "$ANCHOR" -sr
+        pfctl -sr 2>/dev/null | grep -q 'anchor "com.apple/\*"' || echo "WARNING: main ruleset does not reference com.apple/* - rules may not be evaluated"
+    else
+        echo "ERROR: rules did NOT load (anchor has ${n:-0} rules). Rules file: $RULES"; exit 1
+    fi ;;
 status)
     pfctl -s info 2>/dev/null | head -1
     echo "--- anchor $ANCHOR (with counters):"; pfctl -a "$ANCHOR" -vsr 2>/dev/null ;;
