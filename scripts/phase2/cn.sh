@@ -91,8 +91,10 @@ backend() {
     start)
         if listener "$port" >/dev/null; then say "backend $id already running on :$port"; return 0; fi
         local repo="${CN_REPO:?CN_REPO not set in node.env}"
-        ( cd "$repo/backend" && BACKEND_ID="$id" PORT="$port" nohup .venv/bin/python app.py \
-            >> "$CN_HOME/logs/backend-$id.log" 2>&1 & disown )
+        # exec: no helper shell stays behind; all fds go to the log so callers' pipes close.
+        ( cd "$repo/backend" && BACKEND_ID="$id" PORT="$port" exec nohup .venv/bin/python app.py ) \
+            </dev/null >> "$CN_HOME/logs/backend-$id.log" 2>&1 &
+        disown 2>/dev/null || true
         for _ in 1 2 3 4 5 6 7 8 9 10; do listener "$port" >/dev/null && break; sleep 0.3; done
         # macOS framework Python re-execs itself, so track the process that LISTENS on the port.
         if listener "$port" > "$pid"; then say "backend $id STARTED on 0.0.0.0:$port (pid $(cat "$pid"))"
