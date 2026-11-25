@@ -1,4 +1,4 @@
-> **Updated 23 Nov 2026:** IPs refreshed. DNS primary is Mac 1 `10.7.6.8` (backup Mac 2 `10.7.31.150`), edge `10.7.31.150`, backends `10.7.22.168:3001/3002`. Since Phase 2, backends accept direct connections **only from the edge** while the pf firewall is applied, so run step 5 from Mac 2. Config now lives in `~/cn-project/` (see [phase2-runbook.md](phase2-runbook.md)). Full Phase 1+2 demo sequence: [phase2-runbook.md](phase2-runbook.md#3-final-demonstration-sequence-section-8-of-the-brief).
+> **Updated 25 Nov 2026:** DNS primary is Mac 1 `10.7.6.8` (backup Mac 2 `10.7.31.150`), edge `10.7.31.150`, backends `192.168.1.188:3001/3002`. Mac 2 currently cannot reach Mac 3's backend ports across the separate Wi-Fi networks; reconnect to the same college Wi-Fi or establish a route/VPN before the full demo. Since Phase 2, backends accept direct connections **only from the edge** while the pf firewall is applied, so run step 5 from Mac 2. Config now lives in `~/cn-project/` (see [phase2-runbook.md](phase2-runbook.md)). Full Phase 1+2 demo sequence: [phase2-runbook.md](phase2-runbook.md#3-final-demonstration-sequence-section-8-of-the-brief).
 
 # Phase 1 Live Demo Commands
 
@@ -56,8 +56,8 @@ dig @8.8.8.8 app.teamX.test
 
 **From Mac 2 or Client:**
 ```bash
-curl -i http://10.7.22.168:3001/api/status
-curl -i http://10.7.22.168:3002/api/status
+curl -i http://192.168.1.188:3001/api/status
+curl -i http://192.168.1.188:3002/api/status
 ```
 *Expected: HTTP 200 with headers `X-Backend: A` and `X-Backend: B` respectively.*
 

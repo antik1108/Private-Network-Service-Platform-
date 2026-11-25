@@ -16,7 +16,7 @@ cd ~/Downloads/cn-starter
 | --- | --- | --- | --- |
 | **Tanmay's Mac** | `10.7.6.8` | **DNS #1** | The phone book |
 | **Vansh's Mac** | `10.7.31.150` | **Front door** (nginx) + **DNS #2** | Reception desk + spare phone book |
-| **Antik's Mac** | `10.7.22.168` | **Backend A** + **Backend B** + **spare front door** + **firewall** | The back office (2 clerks), a spare reception desk, the security guard |
+| **Antik's Mac** | `192.168.1.188` | **Backend A** + **Backend B** + **spare front door** + **firewall** | The back office (2 clerks), a spare reception desk, the security guard |
 
 **Golden rule:** `app.teamX.test` → **Vansh's Mac** (the front door). Always. Except during the Extension E demo, when we move it to Antik's Mac on purpose.
 

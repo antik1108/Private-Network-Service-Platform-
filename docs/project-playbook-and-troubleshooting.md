@@ -1,4 +1,4 @@
-> **Updated 23 Nov 2026:** IPs refreshed after DHCP changes. Phase 2 roles, scripts and the demo sequence: [phase2-runbook.md](phase2-runbook.md), report: [phase2-report.md](phase2-report.md).
+> **Updated 25 Nov 2026:** Mac 3's current IP is `192.168.1.188`; Mac 1/2 remain on the college LAN. Mac 2 cannot currently reach Mac 3's backend ports. Rejoin the same Wi-Fi or establish a route/VPN before the full demo. Phase 2 runbook: [phase2-runbook.md](phase2-runbook.md), report: [phase2-report.md](phase2-report.md).
 
 # Project Playbook, Troubleshooting & Operation Guide
 
@@ -31,8 +31,8 @@ The platform creates an isolated, enterprise-grade 3-tier network request flow a
                                         Service: nginx (Reverse Proxy + TLS termination, HTTP/2)
                                         Upstream Balancing: Round-Robin
                                         │
-                                        ├── 3a. HTTP/1.1 TCP 3001 ──► Backend A (Antik: 10.7.22.168)
-                                        └── 3b. HTTP/1.1 TCP 3002 ──► Backend B (Antik: 10.7.22.168)
+                                        ├── 3a. HTTP/1.1 TCP 3001 ──► Backend A (Antik: 192.168.1.188)
+                                        └── 3b. HTTP/1.1 TCP 3002 ──► Backend B (Antik: 192.168.1.188)
 ```
 
 ### Project Members & Responsibilities
@@ -49,8 +49,8 @@ The platform creates an isolated, enterprise-grade 3-tier network request flow a
 | --- | --- | --- | --- | --- | --- | --- |
 | **Mac 1** | Private DNS | Tanmay Singh (`2401010476`) | `10.7.6.8` | `dnsmasq` | UDP/TCP `53` | `/opt/homebrew/etc/dnsmasq.conf` |
 | **Mac 2** | Edge / TLS Terminator / Load Balancer | Vansh Panwar (`2401010494`) | `10.7.31.150` | `nginx` | TCP `80`, `443` | `/opt/homebrew/etc/nginx/servers/cn-project.conf` |
-| **Mac 3** | Application Node A | Antik Mondal (`2401010084`) | `10.7.22.168` | Python Flask | TCP `3001` | `backend/app.py` (`BACKEND_ID=A`) |
-| **Mac 4** | Application Node B | Antik Mondal (`2401010084`) | `10.7.22.168` | Python Flask | TCP `3002` | `backend/app.py` (`BACKEND_ID=B`) |
+| **Mac 3** | Application Node A | Antik Mondal (`2401010084`) | `192.168.1.188` | Python Flask | TCP `3001` | `backend/app.py` (`BACKEND_ID=A`) |
+| **Mac 4** | Application Node B | Antik Mondal (`2401010084`) | `192.168.1.188` | Python Flask | TCP `3002` | `backend/app.py` (`BACKEND_ID=B`) |
 
 ---
 
@@ -112,8 +112,8 @@ curl -i http://127.0.0.1:3001/api/cache
 2. Configure `/opt/homebrew/etc/nginx/servers/cn-project.conf`:
    ```nginx
    upstream backend_pool {
-       server 10.7.22.168:3001 max_fails=2 fail_timeout=10s;
-       server 10.7.22.168:3002 max_fails=2 fail_timeout=10s;
+       server 192.168.1.188:3001 max_fails=2 fail_timeout=10s;
+       server 192.168.1.188:3002 max_fails=2 fail_timeout=10s;
    }
 
    server {
@@ -153,7 +153,7 @@ curl -i http://127.0.0.1:3001/api/cache
 ## 3. Problems Faced & Exact Resolutions (Post-Mortem)
 
 ### Problem 1: `curl /api/cache` gave `404 NOT FOUND`
-- **Symptom:** Running `curl http://10.7.22.168:3001/api/cache` returned HTTP 404.
+- **Symptom:** Running `curl http://192.168.1.188:3001/api/cache` returned HTTP 404.
 - **Root Cause:** The starter code in `backend/app.py` only defined `/` and `/api/status`. The course rubric (Section D1 & D2) explicitly requires `/api/cache` with `ETag` and `304 Not Modified` validation.
 - **Resolution:**
   Updated `backend/app.py` with:
@@ -276,8 +276,8 @@ dig @127.0.0.1 app.teamX.test +short
   sudo brew services restart nginx
   ```
 - **If Nginx returns `502 Bad Gateway`:**
-  Nginx cannot reach Backend A (`10.7.22.168:3001`) or Backend B (`10.7.22.168:3002`).
-  - Verify backends are running on Antik's Mac: `curl http://10.7.22.168:3001/api/status`.
+  Nginx cannot reach Backend A (`192.168.1.188:3001`) or Backend B (`192.168.1.188:3002`).
+  - Verify backends are running on Antik's Mac: `curl http://192.168.1.188:3001/api/status`.
   - Check firewall settings on Antik's Mac: `System Settings -> Network -> Firewall`.
 
 ### Scenario D: Wi-Fi Reconnection Changes IP Addresses

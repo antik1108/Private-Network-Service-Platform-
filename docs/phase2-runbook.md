@@ -2,15 +2,15 @@
 
 Everything here is copy-paste ready. Commands that need an admin password are marked **(sudo)**; everything else runs as a normal user.
 
-## 0. Roles and addresses (verified 23 Nov 2026)
+## 0. Roles and addresses (verified 25 Nov 2026)
 
-| Mac | Owner | Roles in Phase 2 | IP (en0, /19) | Services |
+| Mac | Owner | Roles in Phase 2 | IP (en0; prefix varies) | Services |
 | --- | --- | --- | --- | --- |
 | **Mac 1** | Tanmay Singh (2401010476) | Primary DNS + test client | `10.7.6.8` | dnsmasq :53 |
 | **Mac 2** | Vansh Panwar (2401010494) | Primary edge (nginx) + **backup DNS** | `10.7.31.150` | nginx :80/:443, dnsmasq :53 |
-| **Mac 3/4** | Antik Mondal (2401010084) | Backend A + Backend B + **standby edge** + test client | `10.7.22.168` | Flask :3001, :3002, nginx :80/:443 |
+| **Mac 3/4** | Antik Mondal (2401010084) | Backend A + Backend B + **standby edge** + test client | `192.168.1.188` | Flask :3001, :3002, nginx :80/:443 |
 
-LAN `10.7.0.0/19` (mask 255.255.224.0), gateway `10.7.0.1`, interface `en0`. College Wi-Fi uses DHCP, so **re-check the IPs before every session** (section 1).
+Mac 1 and Mac 2 are on college Wi-Fi `10.7.0.0/19` (gateway `10.7.0.1`); Mac 3 is currently on Wi-Fi `192.168.1.0/24` (gateway `192.168.1.1`). Mac 2 cannot currently reach Mac 3's backend ports, so the full demo needs Mac 3 on the same college Wi-Fi or a working route/VPN. Verify cross-network backend reachability before each demo; DHCP may change the address.
 
 The single source of truth is [`team/team.env`](../team/team.env). Every config is rendered from it by `scripts/render-configs.sh` into [`config/rendered/`](../config/rendered).
 
@@ -76,8 +76,8 @@ ssh tanmaysingh@10.7.6.8 '~/cn-project/bin/cn.sh dns start'
 dig @10.7.6.8 app.teamX.test +noall +answer           # TTL 30
 dscacheutil -q host -a name app.teamX.test            # client caches 10.7.31.150
 # change the record on BOTH resolvers
-ssh tanmaysingh@10.7.6.8 '~/cn-project/bin/cn.sh dns-record 10.7.22.168'
-ssh vansh@10.7.31.150    '~/cn-project/bin/cn.sh dns-record 10.7.22.168'
+ssh tanmaysingh@10.7.6.8 '~/cn-project/bin/cn.sh dns-record 192.168.1.188'
+ssh vansh@10.7.31.150    '~/cn-project/bin/cn.sh dns-record 192.168.1.188'
 while true; do date +%T; dscacheutil -q host -a name app.teamX.test | grep ip_; dig @10.7.6.8 app.teamX.test +short; sleep 5; done
 # client keeps the old IP until the TTL runs out, then switches. Flush to switch at once:
 sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder

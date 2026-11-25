@@ -1,6 +1,6 @@
 # Architecture & Network Design (Phase 1 + Phase 2)
 
-> Updated 23 Nov 2026 for Phase 2. The addresses are what DHCP on the college Wi-Fi gave us that day; `team/team.env` is the source of truth.
+> Updated 25 Nov 2026. Mac 1 and Mac 2 remain on the college LAN; Mac 3 is currently on a different Wi-Fi network. Mac 2 cannot currently initiate connections to Mac 3's backend ports. Rejoin the same LAN or establish a route/VPN before the demo. `team/team.env` is the source of truth.
 
 ## Project members
 
@@ -16,10 +16,10 @@ We are a 3-person team, so as the brief allows, Mac 3 and Mac 4 are combined on 
 
 ```mermaid
 flowchart TB
-    subgraph LAN["College Wi-Fi LAN 10.7.0.0/19 - gateway 10.7.0.1"]
+    subgraph LAN["Current links (Mac 1/2: college LAN; Mac 3: separate Wi-Fi, route unavailable)"]
         M1["Mac 1 - Tanmay<br/>10.7.6.8<br/>dnsmasq :53 PRIMARY DNS<br/>test client"]
         M2["Mac 2 - Vansh<br/>10.7.31.150<br/>nginx :443/:80 PRIMARY EDGE<br/>dnsmasq :53 BACKUP DNS"]
-        M3["Mac 3/4 - Antik<br/>10.7.22.168<br/>Backend A :3001 / Backend B :3002<br/>nginx :443 STANDBY EDGE<br/>pf firewall - test client"]
+        M3["Mac 3/4 - Antik<br/>192.168.1.188<br/>Backend A :3001 / Backend B :3002<br/>nginx :443 STANDBY EDGE<br/>pf firewall - test client"]
     end
     M1 -- "DNS (UDP 53)" --- M3
     M2 -- "DNS (UDP 53)" --- M3
@@ -33,7 +33,7 @@ flowchart TB
 | --- | --- | --- | --- | --- | --- | --- |
 | Mac 1 | Tanmays-MacBook-Pro-2 | en0 (Wi-Fi) | 10.7.6.8/19 | 10.7.0.1 | 12:14:be:79:50:fe | dnsmasq UDP/TCP 53 |
 | Mac 2 | MacBook-Pro-13 | en0 (Wi-Fi) | 10.7.31.150/19 | 10.7.0.1 | 46:1b:28:2c:93:f0 | nginx TCP 80, 443; dnsmasq UDP/TCP 53 |
-| Mac 3/4 | Antiks-MacBook-Pro | en0 (Wi-Fi) | 10.7.22.168/19 | 10.7.0.1 | 6a:93:17:56:bb:04 | Flask TCP 3001, 3002; nginx TCP 80, 443 |
+| Mac 3/4 | Antiks-MacBook-Pro | en0 (Wi-Fi) | 192.168.1.188/24 | 192.168.1.1 | current private Wi-Fi address | Flask TCP 3001, 3002; nginx TCP 80, 443 |
 
 (The MAC addresses are macOS private Wi-Fi addresses, so they are fixed per network but differ from the hardware address.)
 
@@ -41,7 +41,7 @@ flowchart TB
 
 | Name | Type | Value | TTL |
 | --- | --- | --- | --- |
-| `app.teamX.test` | A | `10.7.31.150` (edge1). Moved to `10.7.22.168` (edge2) during Ext E | 30 s |
+| `app.teamX.test` | A | `10.7.31.150` (edge1). Moved to `192.168.1.188` (edge2) during Ext E | 30 s |
 | `api.teamX.test` | A | same as app | 30 s |
 | any other `*.teamX.test` | — | NXDOMAIN (`local=/teamX.test/`, never forwarded) | — |
 | everything else | — | forwarded to 10.5.7.1 (college DNS), then 8.8.8.8 | upstream |

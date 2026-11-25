@@ -43,7 +43,7 @@ Phase 2 makes it **survive failures**: a second DNS server, a firewall around th
 | --- | --- | --- | --- | --- |
 | **Mac 1** | Tanmay | `10.7.6.8` | **dnsmasq** (primary DNS), test client | The main phone book |
 | **Mac 2** | Vansh | `10.7.31.150` | **nginx** edge (ports 80/443) + **backup dnsmasq** | Reception desk + spare phone book |
-| **Mac 3/4** | Antik | `10.7.22.168` | **Backend A** (port 3001), **Backend B** (port 3002), **standby nginx**, **pf firewall**, test client | The back office (two clerks) + spare reception desk |
+| **Mac 3/4** | Antik | `192.168.1.188` | **Backend A** (port 3001), **Backend B** (port 3002), **standby nginx**, **pf firewall**, test client | The back office (two clerks) + spare reception desk |
 
 We are 3 people, so Mac 3 and Mac 4 share one laptop: two separate programs on two separate ports. The brief allows this.
 
@@ -51,7 +51,7 @@ We are 3 people, so Mac 3 and Mac 4 share one laptop: two separate programs on t
                          College Wi-Fi  (10.7.0.0/19, router 10.7.0.1)
    ┌──────────────────┐        ┌──────────────────────────┐        ┌───────────────────────────┐
    │ Mac 1  (Tanmay)  │        │ Mac 2  (Vansh)           │        │ Mac 3/4  (Antik)          │
-   │ 10.7.6.8         │        │ 10.7.31.150              │        │ 10.7.22.168               │
+   │ 10.7.6.8         │        │ 10.7.31.150              │        │ 192.168.1.188             │
    │                  │        │                          │        │                           │
    │ DNS #1 :53       │        │ nginx EDGE :443  ────────┼──────► │ Backend A :3001           │
    │ (dnsmasq)        │        │  (TLS, load balancer)    │        │ Backend B :3002           │
@@ -173,7 +173,7 @@ Command on a client: `curl -v https://app.teamX.test/api/status`
 
 ### 4.11 Standby edge / DNS cutover (Extension E)
 - **What:** a second nginx on Antik's Mac with the **same config and the same certificate**.
-- **Cutover:** change the DNS record from `10.7.31.150` → `10.7.22.168`.
+- **Cutover:** change the DNS record from `10.7.31.150` → `192.168.1.188`.
 - **What you'll see:** a Mac that looks up the name fresh goes to the **new** edge immediately (`X-Edge: edge2-mac3`). A Mac that cached the old answer keeps going to the **old** edge for up to 30 s, then moves.
 - **Why the same certificate works:** TLS checks the **name**, not the IP.
 
@@ -192,7 +192,7 @@ Command on a client: `curl -v https://app.teamX.test/api/status`
 | HTTP 404 | L6 | nginx `server_name` / location wrong |
 | HTTP 502 | L7 | Backends down, wrong upstream address, firewall blocking the edge |
 
-> **Real example from 23 Nov 10:30:** Antik's laptop joined a different Wi-Fi (192.168.1.x). The tool reported DNS OK, TCP OK, TLS OK, **HTTP 502 → L7 edge→backend**. The backends were running, but the edge could no longer reach that laptop. Exactly what the tool predicts.
+> **Current network note (25 Nov):** Mac 3 is on Wi-Fi `192.168.1.0/24`; Mac 1/2 remain on `10.7.0.0/19`. Mac 2 currently cannot reach Mac 3's backend ports, so reconnect Mac 3 to the college Wi-Fi or establish a route/VPN before the live demo.
 
 ---
 
@@ -294,8 +294,8 @@ ssh tanmaysingh@10.7.6.8 '~/cn-project/bin/cn.sh dns start'
 **Firewall (C):**
 ```bash
 sudo scripts/phase2/firewall.sh apply
-ssh vansh@10.7.31.150 'curl -s -o /dev/null -w "edge: %{http_code}\n" http://10.7.22.168:3001/api/status'
-ssh tanmaysingh@10.7.6.8 'curl -s -m 4 http://10.7.22.168:3001/api/status; echo "client exit=$?"'
+ssh vansh@10.7.31.150 'curl -s -o /dev/null -w "edge: %{http_code}\n" http://192.168.1.188:3001/api/status'
+ssh tanmaysingh@10.7.6.8 'curl -s -m 4 http://192.168.1.188:3001/api/status; echo "client exit=$?"'
 sudo scripts/phase2/firewall.sh rollback
 ```
 Edge: `200`. Client: `exit=28` (timeout = blocked).

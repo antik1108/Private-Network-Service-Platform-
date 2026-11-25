@@ -1,6 +1,6 @@
 # Private Network Service Platform
 
-Computer Networks course project: a private service reachable at `https://app.teamX.test` across three Macs on the college LAN. It uses private DNS, TLS termination and load balancing at an nginx edge, and two REST backends. Phase 2 adds backup DNS, TTL-controlled cutover, backend isolation, HA failover, a standby edge, and a layer-by-layer troubleshooting tool.
+Computer Networks course project: a private service designed to be reachable at `https://app.teamX.test` across three Macs on a shared LAN. It uses private DNS, TLS termination and load balancing at an nginx edge, and two REST backends. Phase 2 adds backup DNS, TTL-controlled cutover, backend isolation, HA failover, a standby edge, and a layer-by-layer troubleshooting tool.
 
 > *The application stays simple — the network is the project.*
 
@@ -12,15 +12,15 @@ Computer Networks course project: a private service reachable at `https://app.te
 | **Vansh Panwar** | 2401010494 | Mac 2 | nginx edge: reverse proxy, TLS, load balancing, HA (Ext D); backup DNS (Ext A) |
 | **Tanmay Singh** | 2401010476 | Mac 1 | Primary private DNS (dnsmasq), records and TTL (Ext B), test client |
 
-## Network inventory (23 Nov 2026, LAN 10.7.0.0/19, gateway 10.7.0.1)
+## Network inventory (25 Nov 2026)
 
 | Mac | IP | Services |
 | --- | --- | --- |
 | Mac 1 (Tanmay) | `10.7.6.8` | dnsmasq :53 (primary) |
 | Mac 2 (Vansh) | `10.7.31.150` | nginx :80/:443 (edge1), dnsmasq :53 (backup) |
-| Mac 3/4 (Antik) | `10.7.22.168` | Flask :3001 (A), :3002 (B), nginx :443 (edge2 standby), pf |
+| Mac 3/4 (Antik) | `192.168.1.188` | Flask :3001 (A), :3002 (B), nginx :443 (edge2 standby), pf |
 
-`app.teamX.test` and `api.teamX.test` → `10.7.31.150`, TTL 30 s. College Wi-Fi uses DHCP: the source of truth is [`team/team.env`](team/team.env). See [docs/architecture.md](docs/architecture.md) for diagrams and the full inventory.
+Mac 1 and Mac 2 remain on the college LAN (`10.7.0.0/19`, gateway `10.7.0.1`); Mac 3 is currently on Wi-Fi `192.168.1.0/24` (gateway `192.168.1.1`). Mac 2 cannot currently reach Mac 3's backend ports across these networks. Rejoin the same college Wi-Fi as Macs 1 and 2, or establish a route/VPN, before running the full demo. `app.teamX.test` and `api.teamX.test` → `10.7.31.150`, TTL 30 s. DHCP addresses can change: [`team/team.env`](team/team.env) is the source of truth. See [docs/architecture.md](docs/architecture.md) for diagrams and the full inventory.
 
 ```mermaid
 flowchart LR
@@ -28,7 +28,7 @@ flowchart LR
     dns1["DNS1 dnsmasq<br/>Mac 1 10.7.6.8"]
     dns2["DNS2 dnsmasq<br/>Mac 2 10.7.31.150"]
     edge1["edge1 nginx<br/>Mac 2 10.7.31.150:443"]
-    edge2["edge2 nginx (standby)<br/>Mac 3/4 10.7.22.168:443"]
+    edge2["edge2 nginx (standby)<br/>Mac 3/4 192.168.1.188:443"]
     a["Backend A :3001"]
     b["Backend B :3002"]
     client -- "UDP 53" --> dns1

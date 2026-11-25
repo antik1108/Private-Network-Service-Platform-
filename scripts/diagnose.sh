@@ -30,7 +30,7 @@ IP="$(ipconfig getifaddr en0 || true)"; GW="$(ipconfig getoption en0 router 2>/d
 [ -n "$IP" ] && ok "en0 has $IP, gateway $GW" || verdict "L1 client network" "Wi-Fi down / no DHCP lease" "reconnect Wi-Fi, check 'ipconfig getifaddr en0'"
 SUBNET_OK=1
 for v in DNS1_IP DNS2_IP EDGE1_IP; do [[ "${!v%.*.*}" == "${IP%.*.*}" ]] || SUBNET_OK=0; done
-[ $SUBNET_OK = 1 ] || warn "team.env IPs are not in this Mac's network ($IP) - did DHCP change addresses?"
+[ $SUBNET_OK = 1 ] || warn "this Mac ($IP) and the configured DNS/edge nodes are on different IPv4 networks; the team network must route between them"
 
 hdr L2 "DNS - which servers does this client use, and do they answer?"
 # Network > DNS servers (scutil also sees them when Tailscale/VPN owns /etc/resolv.conf)
